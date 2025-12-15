@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — Test yaratish</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  min-height:100vh;
+  background:linear-gradient(135deg,#4f46e5,#22c55e);
+  display:flex;
+  justify-content:center;
+  align-items:flex-start;
+  padding:40px 20px;
+}
+.card{
+  width:100%;
+  max-width:900px;
+  background:#fff;
+  padding:30px;
+  border-radius:18px;
+  border:2px solid #e5e7eb;
+  box-shadow:0 20px 40px rgba(0,0,0,0.15);
+}
+h2,h3{margin-top:0}
+input,select,button{
+  width:100%;
+  padding:12px;
+  margin:6px 0;
+  font-size:15px;
+}
+button{
+  background:#4f46e5;
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  font-weight:bold;
+  cursor:pointer;
+}
+hr{margin:25px 0}
+.small{font-size:14px;color:#555}
+.list li{
+  margin:6px 0;
+}
+.list button{
+  background:#dc2626;
+  padding:4px 8px;
+  margin-left:10px;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+<h2>Admin — Test yaratish</h2>
+
+<!-- TEST MA'LUMOTLARI -->
+<input id="testId" placeholder="Test ID (masalan: AAA2025)">
+
+<select id="fan">
+  <option value="">Fan tanlang</option>
+  <option>Matematika</option>
+  <option>Ona tili</option>
+  <option>Tarix</option>
+  <option>Ingliz tili</option>
+</select>
+
+<label>Sana</label>
+<input type="date" id="date">
+
+<label>Boshlanish vaqti</label>
+<input type="time" id="start">
+
+<label>Tugash vaqti</label>
+<input type="time" id="end">
+
+<label>Davomiylik (daqiqada)</label>
+<input type="number" id="duration" placeholder="Masalan: 60">
+
+<hr>
+
+<!-- EXCEL -->
+<h3>📂 Excel orqali savol yuklash</h3>
+<input type="file" id="excel" accept=".xlsx">
+<button onclick="loadExcel()">Excel yuklash</button>
+
+<hr>
+
+<!-- QO'LDA -->
+<h3>✍️ Qo‘lda savol qo‘shish</h3>
+
+<input id="qText" placeholder="Savol matni">
+
+<input id="aA" placeholder="A varianti">
+<input id="aB" placeholder="B varianti">
+<input id="aC" placeholder="C varianti">
+<input id="aD" placeholder="D varianti">
+
+<select id="qCorrect">
+  <option value="">To‘g‘ri javob</option>
+  <option>A</option>
+  <option>B</option>
+  <option>C</option>
+  <option>D</option>
+</select>
+
+<button onclick="addManual()">Savol qo‘shish</button>
+
+<p id="qCount" class="small">Savollar soni: 0 / 50</p>
+
+<hr>
+
+<button onclick="saveTest()">✅ TESTNI SAQLASH</button>
+
+<hr>
+
+<h3>📋 Mavjud testlar</h3>
+<ul id="testList" class="list"></ul>
+
+<a href="results.html">📊 Natijalar</a>
+</div>
+
+<script>
+let questions = [];
+
+// -------- EXCEL --------
+function loadExcel(){
+  const file = excel.files[0];
+  if(!file){ alert("Excel tanlang"); return; }
+
+  const reader = new FileReader();
+  reader.onload = e=>{
+    const wb = XLSX.read(e.target.result,{type:"binary"});
+    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
+    if(rows.length !== 50){
+      alert("Excel faylda aniq 50 savol bo‘lishi kerak");
+      return;
+    }
+    questions = rows.map(r=>({
+      text:r.Savol,
+      options:{A:r.A,B:r.B,C:r.C,D:r.D},
+      correct:String(r.Togri).toUpperCase()
+    }));
+    qCount.innerText = `Savollar soni: ${questions.length} / 50`;
+  };
+  reader.readAsBinaryString(file);
+}
+
+// -------- QO‘LDA --------
+function addManual(){
+  if(!qText.value||!aA.value||!aB.value||!aC.value||!aD.value||!qCorrect.value){
+    alert("Barcha maydonlarni to‘ldiring");
+    return;
+  }
+  if(questions.length>=50){
+    alert("50 ta savol bo‘ldi");
+    return;
+  }
+  questions.push({
+    text:qText.value,
+    options:{A:aA.value,B:aB.value,C:aC.value,D:aD.value},
+    correct:qCorrect.value
+  });
+  qText.value=aA.value=aB.value=aC.value=aD.value="";
+  qCorrect.value="";
+  qCount.innerText = `Savollar soni: ${questions.length} / 50`;
+}
+
+// -------- SAQLASH --------
+function saveTest(){
+  if(!testId.value){ alert("Test ID kiriting"); return; }
+  if(questions.length!==50){ alert("Aniq 50 savol bo‘lishi kerak"); return; }
+
+  const allTests = JSON.parse(localStorage.getItem("allTests")) || {};
+  allTests[testId.value]={
+    fan:fan.value,
+    date:date.value,
+    startTime:start.value,
+    endTime:end.value,
+    duration:Number(duration.value),
+    questions:questions
+  };
+  localStorage.setItem("allTests",JSON.stringify(allTests));
+  alert("Test saqlandi");
+  showTests();
+}
+
+// -------- RO‘YXAT --------
+function showTests(){
+  const allTests = JSON.parse(localStorage.getItem("allTests")) || {};
+  testList.innerHTML="";
+  for(const id in allTests){
+    testList.innerHTML+=`
+      <li>
+        <b>${id}</b> — ${allTests[id].fan||"-"}
+        <button onclick="del('${id}')">❌</button>
+      </li>`;
+  }
+}
+function del(id){
+  if(!confirm("O‘chirish?"))return;
+  const allTests = JSON.parse(localStorage.getItem("allTests"))||{};
+  delete allTests[id];
+  localStorage.setItem("allTests",JSON.stringify(allTests));
+  showTests();
+}
+showTests();
+</script>
+
+</body>
+</html>

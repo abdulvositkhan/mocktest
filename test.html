@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Test topshirish</title>
+<style>
+body{
+  margin:0;
+  font-family:Arial, sans-serif;
+  background:linear-gradient(135deg,#22c55e,#4f46e5);
+}
+.card{
+  max-width:900px;
+  margin:20px auto;
+  background:#fff;
+  padding:20px;
+  border-radius:16px;
+}
+.timer{
+  text-align:right;
+  font-weight:bold;
+  color:#dc2626;
+  margin-bottom:10px;
+}
+.question{
+  margin-bottom:16px;
+}
+button{
+  width:100%;
+  padding:14px;
+  background:#4f46e5;
+  color:#fff;
+  border:none;
+  border-radius:10px;
+  font-size:16px;
+  font-weight:bold;
+}
+.result{
+  margin-top:20px;
+  padding:16px;
+  border-radius:12px;
+  text-align:center;
+  font-weight:bold;
+}
+.red{background:#fee2e2}
+.orange{background:#ffedd5}
+.yellow{background:#fef9c3}
+.blue{background:#dbeafe}
+</style>
+</head>
+<body>
+
+<div class="card">
+  <div id="msg"></div>
+  <div class="timer" id="timer"></div>
+
+  <div id="questions"></div>
+
+  <button onclick="finish()">TESTNI YAKUNLASH</button>
+  <div id="natija"></div>
+</div>
+
+<script>
+// ------------------ CHEAT BLOKLASH ------------------
+document.addEventListener("visibilitychange",()=>{
+  if(document.hidden){
+    alert("Qoidabuzarlik! Test yakunlandi.");
+    finish();
+  }
+});
+document.addEventListener("copy",e=>e.preventDefault());
+document.addEventListener("paste",e=>e.preventDefault());
+window.onbeforeunload = () => "Testni tark etib bo‘lmaydi";
+
+// ------------------ TEST MAʼLUMOTI ------------------
+const testId = localStorage.getItem("currentTestId");
+const allTests = JSON.parse(localStorage.getItem("allTests")) || {};
+const data = allTests[testId];
+
+if(!data){
+  alert("Test topilmadi");
+  location.href = "taker.html";
+  throw "";
+}
+
+// Sana / vaqt tekshiruvi
+const now = new Date();
+const start = new Date(`${data.date}T${data.startTime}`);
+const end   = new Date(`${data.date}T${data.endTime}`);
+
+if(now < start){
+  msg.innerText = "❌ Test hali boshlanmagan";
+  throw "";
+}
+if(now > end){
+  msg.innerText = "❌ Test vaqti tugagan";
+  throw "";
+}
+
+// ------------------ TIMER ------------------
+let time = data.duration * 60;
+const interval = setInterval(()=>{
+  const m = Math.floor(time / 60);
+  const s = time % 60;
+  timer.innerText = `⏱ ${m}:${String(s).padStart(2,"0")}`;
+  if(--time < 0){
+    clearInterval(interval);
+    finish();
+  }
+},1000);
+
+// ------------------ SAVOLLARNI CHIQARISH ------------------
+data.questions.forEach((q,i)=>{
+  let html = `<div class="question"><b>${i+1}. ${q.text}</b><br>`;
+  for(const k in q.options){
+    html += `
+      <label>
+        <input type="radio" name="q${i}" value="${k}">
+        ${k}) ${q.options[k]}
+      </label><br>`;
+  }
+  html += "</div>";
+  questions.innerHTML += html;
+});
+
+// ------------------ YAKUN ------------------
+function finish(){
+  clearInterval(interval);
+
+  let correct = 0;
+  data.questions.forEach((q,i)=>{
+    const sel = document.querySelector(`input[name="q${i}"]:checked`);
+    if(sel && sel.value === q.correct) correct++;
+  });
+
+  const ball = correct * 2;
+  let toifa = "O‘tilmadi", rang = "red";
+
+  if(ball >= 80){ toifa="Oliy toifa"; rang="blue"; }
+  else if(ball >= 70){ toifa="Birinchi toifa"; rang="yellow"; }
+  else if(ball >= 60){ toifa="Ikkinchi toifa"; rang="orange"; }
+
+  // Natijani saqlash (best keyin hisoblanadi)
+  const results = JSON.parse(localStorage.getItem("results")) || [];
+  results.push({
+    ism: localStorage.getItem("ism"),
+    familiya: localStorage.getItem("familiya"),
+    testId: testId,
+    fan: data.fan || "-",
+    ball: ball,
+    toifa: toifa,
+    sana: new Date().toLocaleString(),
+    best: false
+  });
+  localStorage.setItem("results", JSON.stringify(results));
+
+  natija.innerHTML = `
+    <div class="result ${rang}">
+      ${ball}/100<br>
+      ${toifa}
+    </div>`;
+}
+</script>
+
+</body>
+</html>

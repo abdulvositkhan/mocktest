@@ -5,184 +5,162 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Admin — Test yaratish</title>
 
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-
 <style>
 body{
   margin:0;
   font-family:Arial, sans-serif;
+  background:linear-gradient(90deg,#3b82f6,#10b981);
   min-height:100vh;
-  background:linear-gradient(135deg,#4f46e5,#22c55e);
   display:flex;
   justify-content:center;
-  align-items:flex-start;
-  padding:40px 20px;
+  align-items:center;
 }
 .card{
+  background:#fff;
   width:100%;
   max-width:900px;
-  background:#fff;
   padding:30px;
-  border-radius:18px;
-  border:2px solid #e5e7eb;
-  box-shadow:0 20px 40px rgba(0,0,0,0.15);
+  border-radius:20px;
+  box-shadow:0 20px 50px rgba(0,0,0,0.2);
 }
-h2,h3{margin-top:0}
-input,select,button{
+h2{margin-top:0}
+input,select{
   width:100%;
   padding:12px;
-  margin:6px 0;
+  margin:8px 0;
+  border-radius:10px;
+  border:1px solid #d1d5db;
   font-size:15px;
 }
 button{
-  background:#4f46e5;
-  color:#fff;
+  width:100%;
+  padding:14px;
   border:none;
-  border-radius:10px;
+  border-radius:12px;
+  background:#4f46e5;
+  color:white;
+  font-size:16px;
   font-weight:bold;
   cursor:pointer;
+  margin-top:10px;
 }
-hr{margin:25px 0}
-.small{font-size:14px;color:#555}
-.list li{
-  margin:6px 0;
+button.red{background:#dc2626}
+button.green{background:#16a34a}
+.row{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
 }
-.list button{
-  background:#dc2626;
-  padding:4px 8px;
-  margin-left:10px;
+.qbox{
+  border:1.5px dashed #d1d5db;
+  padding:15px;
+  border-radius:12px;
+  margin-top:15px;
+}
+.test-list{
+  margin-top:20px;
+}
+.test-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  border:1px solid #e5e7eb;
+  padding:10px;
+  border-radius:10px;
+  margin-top:8px;
+}
+.small-btn{
+  padding:6px 12px;
+  border-radius:8px;
+  font-size:14px;
 }
 </style>
 </head>
 <body>
 
 <div class="card">
+
 <h2>Admin — Test yaratish</h2>
 
-<!-- TEST MA'LUMOTLARI -->
-<input id="testId" placeholder="Test ID (masalan: AAA2025)">
-
+<input id="testId" placeholder="Test ID (masalan: FIZ2025)">
 <select id="fan">
   <option value="">Fan tanlang</option>
   <option>Matematika</option>
-  <option>Ona tili</option>
-  <option>Tarix</option>
-  <option>Ingliz tili</option>
+  <option>Fizika</option>
+  <option>Informatika</option>
 </select>
 
-<label>Sana</label>
-<input type="date" id="date">
+<div class="row">
+  <input type="date" id="date">
+  <input type="number" id="duration" placeholder="Davomiylik (daq)">
+</div>
 
-<label>Boshlanish vaqti</label>
-<input type="time" id="start">
-
-<label>Tugash vaqti</label>
-<input type="time" id="end">
-
-<label>Davomiylik (daqiqada)</label>
-<input type="number" id="duration" placeholder="Masalan: 60">
+<div class="row">
+  <input type="time" id="start">
+  <input type="time" id="end">
+</div>
 
 <hr>
 
-<!-- EXCEL -->
-<h3>📂 Excel orqali savol yuklash</h3>
-<input type="file" id="excel" accept=".xlsx">
-<button onclick="loadExcel()">Excel yuklash</button>
+<h3>Qo‘lda savol qo‘shish</h3>
+
+<div class="qbox">
+  <input id="qText" placeholder="Savol matni">
+  <input id="a" placeholder="A variant">
+  <input id="b" placeholder="B variant">
+  <input id="c" placeholder="C variant">
+  <input id="d" placeholder="D variant">
+  <select id="correct">
+    <option value="">To‘g‘ri javob</option>
+    <option>A</option>
+    <option>B</option>
+    <option>C</option>
+    <option>D</option>
+  </select>
+  <button onclick="addQuestion()">Savol qo‘shish</button>
+  <div id="count">Savollar: 0 / 50</div>
+</div>
+
+<button class="green" onclick="saveTest()">TESTNI SAQLASH</button>
 
 <hr>
 
-<!-- QO'LDA -->
-<h3>✍️ Qo‘lda savol qo‘shish</h3>
+<h3>Mavjud testlar</h3>
+<div id="tests" class="test-list"></div>
 
-<input id="qText" placeholder="Savol matni">
-
-<input id="aA" placeholder="A varianti">
-<input id="aB" placeholder="B varianti">
-<input id="aC" placeholder="C varianti">
-<input id="aD" placeholder="D varianti">
-
-<select id="qCorrect">
-  <option value="">To‘g‘ri javob</option>
-  <option>A</option>
-  <option>B</option>
-  <option>C</option>
-  <option>D</option>
-</select>
-
-<button onclick="addManual()">Savol qo‘shish</button>
-
-<p id="qCount" class="small">Savollar soni: 0 / 50</p>
-
-<hr>
-
-<button onclick="saveTest()">✅ TESTNI SAQLASH</button>
-
-<hr>
-
-<h3>📋 Mavjud testlar</h3>
-<ul id="testList" class="list"></ul>
-
-<a href="results.html">📊 Natijalar</a>
 </div>
 
 <script>
 let questions = [];
 
-// -------- EXCEL --------
-function loadExcel(){
-  const file = excel.files[0];
-  if(!file){ alert("Excel tanlang"); return; }
-
-  const reader = new FileReader();
-  reader.onload = e=>{
-    const wb = XLSX.read(e.target.result,{type:"binary"});
-    const rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]]);
-    if(rows.length !== 50){
-      alert("Excel faylda aniq 50 savol bo‘lishi kerak");
-      return;
-    }
-    questions = rows.map(r=>({
-      text:r.Savol,
-      options:{A:r.A,B:r.B,C:r.C,D:r.D},
-      correct:String(r.Togri).toUpperCase()
-    }));
-    qCount.innerText = `Savollar soni: ${questions.length} / 50`;
-  };
-  reader.readAsBinaryString(file);
-}
-
-// -------- QO‘LDA --------
-function addManual(){
-  if(!qText.value||!aA.value||!aB.value||!aC.value||!aD.value||!qCorrect.value){
-    alert("Barcha maydonlarni to‘ldiring");
-    return;
-  }
+function addQuestion(){
   if(questions.length>=50){
-    alert("50 ta savol bo‘ldi");
+    alert("50 ta savol yetarli");
     return;
   }
-  questions.push({
+  const q = {
     text:qText.value,
-    options:{A:aA.value,B:aB.value,C:aC.value,D:aD.value},
-    correct:qCorrect.value
-  });
-  qText.value=aA.value=aB.value=aC.value=aD.value="";
-  qCorrect.value="";
-  qCount.innerText = `Savollar soni: ${questions.length} / 50`;
+    options:{A:a.value,B:b.value,C:c.value,D:d.value},
+    correct:correct.value
+  };
+  if(!q.text||!q.correct){
+    alert("Savol to‘liq emas");
+    return;
+  }
+  questions.push(q);
+  qText.value=a.value=b.value=c.value=d.value="";
+  correct.value="";
+  count.innerText=`Savollar: ${questions.length} / 50`;
 }
 
-// -------- SAQLASH --------
 function saveTest(){
-  if(!testId.value){ alert("Test ID kiriting"); return; }
-  if(questions.length!==50){ alert("Aniq 50 savol bo‘lishi kerak"); return; }
-
   const allTests = JSON.parse(localStorage.getItem("allTests")) || {};
   allTests[testId.value]={
     fan:fan.value,
     date:date.value,
     startTime:start.value,
     endTime:end.value,
-    duration:Number(duration.value),
+    duration:duration.value,
     questions:questions
   };
   localStorage.setItem("allTests",JSON.stringify(allTests));
@@ -190,26 +168,42 @@ function saveTest(){
   showTests();
 }
 
-// -------- RO‘YXAT --------
 function showTests(){
+  tests.innerHTML="";
   const allTests = JSON.parse(localStorage.getItem("allTests")) || {};
-  testList.innerHTML="";
   for(const id in allTests){
-    testList.innerHTML+=`
-      <li>
-        <b>${id}</b> — ${allTests[id].fan||"-"}
-        <button onclick="del('${id}')">❌</button>
-      </li>`;
+    tests.innerHTML+=`
+      <div class="test-item">
+        <b>${id}</b>
+        <div>
+          <button class="small-btn" onclick="editTest('${id}')">✏️</button>
+          <button class="small-btn red" onclick="deleteTest('${id}')">❌</button>
+        </div>
+      </div>`;
   }
 }
-function del(id){
-  if(!confirm("O‘chirish?"))return;
-  const allTests = JSON.parse(localStorage.getItem("allTests"))||{};
+showTests();
+
+function deleteTest(id){
+  const allTests = JSON.parse(localStorage.getItem("allTests"));
   delete allTests[id];
   localStorage.setItem("allTests",JSON.stringify(allTests));
   showTests();
 }
-showTests();
+
+function editTest(id){
+  const allTests = JSON.parse(localStorage.getItem("allTests"));
+  const t = allTests[id];
+  testId.value=id;
+  fan.value=t.fan;
+  date.value=t.date;
+  start.value=t.startTime;
+  end.value=t.endTime;
+  duration.value=t.duration;
+  questions=t.questions;
+  count.innerText=`Savollar: ${questions.length} / 50`;
+  alert("Tahrirlash rejimi yoqildi. O‘zgartirib saqlang.");
+}
 </script>
 
 </body>

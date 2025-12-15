@@ -4,162 +4,205 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Test topshirish</title>
+
 <style>
 body{
   margin:0;
   font-family:Arial, sans-serif;
-  background:linear-gradient(135deg,#22c55e,#4f46e5);
+  background:#ecfdf5; /* juda och yashil */
+  min-height:100vh;
+  display:flex;
+  justify-content:center;
+  align-items:center;
 }
-.card{
+
+.container{
+  width:100%;
   max-width:900px;
-  margin:20px auto;
-  background:#fff;
-  padding:20px;
-  border-radius:16px;
+  background:#ffffff;
+  padding:30px;
+  border-radius:20px;
+  box-shadow:0 15px 40px rgba(0,0,0,0.15);
 }
+
 .timer{
   text-align:right;
+  font-size:18px;
   font-weight:bold;
   color:#dc2626;
-  margin-bottom:10px;
 }
-.question{
-  margin-bottom:16px;
+
+.question-box{
+  border:2px solid #e5e7eb;
+  border-radius:16px;
+  padding:25px;
+  font-size:22px;
+  font-weight:600;
+  margin:20px 0;
 }
-button{
-  width:100%;
+
+.option{
+  border:1.5px solid #d1d5db;
+  border-radius:12px;
   padding:14px;
-  background:#4f46e5;
-  color:#fff;
+  margin:12px 0;
+  font-size:18px;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.option:hover{
+  background:#f0fdf4;
+}
+
+.nav{
+  display:flex;
+  justify-content:space-between;
+  margin-top:25px;
+}
+
+button{
+  padding:14px 26px;
   border:none;
-  border-radius:10px;
+  border-radius:12px;
+  background:#4f46e5;
+  color:white;
   font-size:16px;
   font-weight:bold;
+  cursor:pointer;
 }
+
+.finish{
+  width:100%;
+  margin-top:25px;
+  background:#16a34a;
+}
+
 .result{
-  margin-top:20px;
-  padding:16px;
-  border-radius:12px;
   text-align:center;
+  font-size:30px;
   font-weight:bold;
+  padding:40px;
+  border-radius:20px;
+  margin-top:20px;
 }
-.red{background:#fee2e2}
-.orange{background:#ffedd5}
-.yellow{background:#fef9c3}
-.blue{background:#dbeafe}
+
+.red{background:#fee2e2;color:#991b1b}
+.orange{background:#ffedd5;color:#9a3412}
+.yellow{background:#fef9c3;color:#854d0e}
+.blue{background:#dbeafe;color:#1e3a8a}
 </style>
 </head>
 <body>
 
-<div class="card">
-  <div id="msg"></div>
+<div class="container">
+
   <div class="timer" id="timer"></div>
 
-  <div id="questions"></div>
+  <div id="testArea">
+    <div class="question-box" id="questionText"></div>
+    <div id="options"></div>
 
-  <button onclick="finish()">TESTNI YAKUNLASH</button>
-  <div id="natija"></div>
+    <div class="nav">
+      <button onclick="prevQuestion()">⬅ Oldingi</button>
+      <button onclick="nextQuestion()">Keyingi ➡</button>
+    </div>
+
+    <button class="finish" onclick="finishTest()">TESTNI YAKUNLASH</button>
+  </div>
+
+  <div id="resultArea"></div>
+
 </div>
 
 <script>
-// ------------------ CHEAT BLOKLASH ------------------
-document.addEventListener("visibilitychange",()=>{
-  if(document.hidden){
-    alert("Qoidabuzarlik! Test yakunlandi.");
-    finish();
-  }
-});
-document.addEventListener("copy",e=>e.preventDefault());
-document.addEventListener("paste",e=>e.preventDefault());
-window.onbeforeunload = () => "Testni tark etib bo‘lmaydi";
-
-// ------------------ TEST MAʼLUMOTI ------------------
+// === MA'LUMOTLAR ===
 const testId = localStorage.getItem("currentTestId");
 const allTests = JSON.parse(localStorage.getItem("allTests")) || {};
-const data = allTests[testId];
+const test = allTests[testId];
 
-if(!data){
+if(!test){
   alert("Test topilmadi");
-  location.href = "taker.html";
-  throw "";
+  location.href="taker.html";
 }
 
-// Sana / vaqt tekshiruvi
-const now = new Date();
-const start = new Date(`${data.date}T${data.startTime}`);
-const end   = new Date(`${data.date}T${data.endTime}`);
+let current = 0;
+let answers = {};
+let timeLeft = test.duration * 60;
 
-if(now < start){
-  msg.innerText = "❌ Test hali boshlanmagan";
-  throw "";
-}
-if(now > end){
-  msg.innerText = "❌ Test vaqti tugagan";
-  throw "";
-}
-
-// ------------------ TIMER ------------------
-let time = data.duration * 60;
-const interval = setInterval(()=>{
-  const m = Math.floor(time / 60);
-  const s = time % 60;
-  timer.innerText = `⏱ ${m}:${String(s).padStart(2,"0")}`;
-  if(--time < 0){
-    clearInterval(interval);
-    finish();
-  }
+// === TIMER ===
+const timerEl = document.getElementById("timer");
+setInterval(()=>{
+  const m = Math.floor(timeLeft / 60);
+  const s = timeLeft % 60;
+  timerEl.innerText = `⏱ ${m}:${String(s).padStart(2,"0")}`;
+  timeLeft--;
+  if(timeLeft < 0) finishTest();
 },1000);
 
-// ------------------ SAVOLLARNI CHIQARISH ------------------
-data.questions.forEach((q,i)=>{
-  let html = `<div class="question"><b>${i+1}. ${q.text}</b><br>`;
-  for(const k in q.options){
-    html += `
-      <label>
-        <input type="radio" name="q${i}" value="${k}">
-        ${k}) ${q.options[k]}
-      </label><br>`;
+// === SAVOL CHIQARISH ===
+function renderQuestion(){
+  const q = test.questions[current];
+  document.getElementById("questionText").innerText =
+    `${current+1}. ${q.text}`;
+
+  const optDiv = document.getElementById("options");
+  optDiv.innerHTML = "";
+
+  for(const key in q.options){
+    optDiv.innerHTML += `
+      <label class="option">
+        <input type="radio" name="option" value="${key}"
+          ${answers[current]===key?"checked":""}>
+        ${key}) ${q.options[key]}
+      </label>
+    `;
   }
-  html += "</div>";
-  questions.innerHTML += html;
-});
 
-// ------------------ YAKUN ------------------
-function finish(){
-  clearInterval(interval);
+  document.querySelectorAll("input[name=option]").forEach(r=>{
+    r.onchange = () => answers[current] = r.value;
+  });
+}
+renderQuestion();
 
+function nextQuestion(){
+  if(current < test.questions.length-1){
+    current++;
+    renderQuestion();
+  }
+}
+
+function prevQuestion(){
+  if(current > 0){
+    current--;
+    renderQuestion();
+  }
+}
+
+// === TESTNI YAKUNLASH ===
+function finishTest(){
   let correct = 0;
-  data.questions.forEach((q,i)=>{
-    const sel = document.querySelector(`input[name="q${i}"]:checked`);
-    if(sel && sel.value === q.correct) correct++;
+  test.questions.forEach((q,i)=>{
+    if(answers[i] === q.correct) correct++;
   });
 
-  const ball = correct * 2;
-  let toifa = "O‘tilmadi", rang = "red";
+  const score = correct * 2;
+  let title="O‘tilmadi", cls="red";
 
-  if(ball >= 80){ toifa="Oliy toifa"; rang="blue"; }
-  else if(ball >= 70){ toifa="Birinchi toifa"; rang="yellow"; }
-  else if(ball >= 60){ toifa="Ikkinchi toifa"; rang="orange"; }
+  if(score>=80){title="Oliy toifa";cls="blue";}
+  else if(score>=70){title="Birinchi toifa";cls="yellow";}
+  else if(score>=60){title="Ikkinchi toifa";cls="orange";}
 
-  // Natijani saqlash (best keyin hisoblanadi)
-  const results = JSON.parse(localStorage.getItem("results")) || [];
-  results.push({
-    ism: localStorage.getItem("ism"),
-    familiya: localStorage.getItem("familiya"),
-    testId: testId,
-    fan: data.fan || "-",
-    ball: ball,
-    toifa: toifa,
-    sana: new Date().toLocaleString(),
-    best: false
-  });
-  localStorage.setItem("results", JSON.stringify(results));
+  document.getElementById("testArea").style.display="none";
 
-  natija.innerHTML = `
-    <div class="result ${rang}">
-      ${ball}/100<br>
-      ${toifa}
-    </div>`;
+  document.getElementById("resultArea").innerHTML = `
+    <div class="result ${cls}">
+      ${score}/100<br>
+      ${title}
+    </div>
+  `;
 }
 </script>
 
